@@ -1,7 +1,7 @@
-/** IMPORTANT NOTE
+/** IMPORTANT NOTE:
+ * DO NOT hardcode private keys in your code.
  * Private keys are secrets. Store private keys in a safe place (Ex: SecretsManager, Vault, ...).
  * The below private keys are hardcoded here for the convenience of the demo.
- * Please DO NOT hardcode private keys in your code.
  */
 module.exports = {
   SERVER_PORT: 5081,
