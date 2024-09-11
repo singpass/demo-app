@@ -1,26 +1,26 @@
 * {
-    --clr-primary: #cf0b15
+  --clr-primary: #cf0b15;
 }
 button {
-    border: 1px;
-    border-radius: 0.5em;
-    padding: 1em 2.5em;
-    cursor: pointer;
-    font-weight: bold;
+  border: 1px;
+  border-radius: 0.5em;
+  padding: 1em 2.5em;
+  cursor: pointer;
+  font-weight: bold;
 }
 
 .btn-primary {
-    background-color: var(--clr-primary);
-    color: white;
-    font-size: 1em;
+  background-color: var(--clr-primary);
+  color: white;
+  font-size: 1em;
 }
 
 .btn-login {
-    display: flex;
-    gap: 0.3em;
-    align-items: center;
+  display: flex;
+  gap: 0.3em;
+  align-items: center;
 }
 
 .btn-login > img {
-    height: 1.1em;
+  height: 1.1em;
 }
