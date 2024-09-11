@@ -1,13 +1,9 @@
 {
   "name": "demo-app",
   "version": "0.0.1",
-  "description": "Singpass login demo app",
   "scripts": {
     "start": "node src/server.js"
   },
-  "keywords": [
-    "singpass"
-  ],
   "license": "MIT",
   "dependencies": {
     "@koa/bodyparser": "^5.1.1",

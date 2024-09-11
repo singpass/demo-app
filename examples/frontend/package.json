@@ -1,13 +1,9 @@
 {
   "name": "demo-app",
   "version": "0.0.1",
-  "description": "Singpass login demo app",
   "scripts": {
     "start": "webpack serve"
   },
-  "keywords": [
-    "singpass"
-  ],
   "license": "MIT",
   "devDependencies": {
     "eslint": "^8.57.0",
