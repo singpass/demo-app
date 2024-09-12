@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: demo
+  security:
+    oauth2:
+      client:
+        registration:
+          singpass:
+            client-id: dcxjBqMGNQ7QLHEnfEBitKUxGtW2S8y0
+            client-secret: '{"use": "sig","alg":"ES256","kty":"EC","x":"tqG7PiAPD0xTBKdxDd4t8xAjJleP3Szw1CZiBjogmoc","y":"256TjvubWV-x-C8lptl7eSbMa7pQUXH9LY1AIHUGINk","crv":"P-256","d":"PgL1UKVpvg_GeKdxV-oUEPIDhGBP2YYZLGiZ5HXDZDI","kid":"my-sig-key"}'
+            client-authentication-method: private_key_jwt
+            authorization-grant-type: authorization_code
+            redirect-uri: http://localhost:3080/callback
+            scope: openid
+        provider:
+          singpass:
+            issuer-uri: https://stg-id.singpass.gov.sg
+
+server:
+  port: 3080
+  error:
+    whitelabel:
+      enabled: false
