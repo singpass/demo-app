@@ -1,0 +1,38 @@
+<!doctype html>
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Singpass Demo App</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=" id="this-is-a-dummy-favicon" />
+  </head>
+
+  <body>
+    <main>
+      <h1>Singpass Demo App</h1>
+      <a href="https://docs.developer.singpass.gov.sg" target="_blank">Documentation</a>
+      <p id="msg"></p>
+      <a href="/login" id="login" class="btn">Log in with <img src="singpass.svg" alt="Singpass" /></a>
+      <a href="/logout" id="logout" class="btn">Log out</a>
+    </main>
+  </body>
+
+  <script>
+    const msg = document.getElementById('msg');
+    const login = document.getElementById('login');
+    const logout = document.getElementById('logout');
+    fetch('/user').then(async (res) => {
+      if (res.status === 200) {
+        const { id } = await res.json();
+        msg.innerText = `Thanks for logging in. Your user ID is ${id}.`;
+        login.style.display = 'none';
+        logout.style.display = 'inline-flex';
+      } else {
+        msg.innerText = 'You are not logged in.';
+        login.style.display = 'inline-flex';
+        logout.style.display = 'none';
+      }
+    });
+  </script>
+</html>
