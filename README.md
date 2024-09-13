@@ -1,32 +1,42 @@
-## Getting started
+# Demo App
 
-Prerequisites:
-- We have completed Step 1 in the [Onboarding checklist](https://docs.developer.singpass.gov.sg/singpass-developer-docs/getting-started/onboarding-checklist)
-to register and configure the demo app.
+This repository provides examples of how you might integrate with Singpass (an OIDC provider) as an OIDC client.
 
-1. Starting the demo app in your preferred language:
+## Running the Demo App Locally
 
-   1. **NodeJS**
-      
-      Install [NodeJS and npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) and run
-      ```shell
-      cd examples/nodejs
-      npm install
-      npm start
-      ```
+To run the demo app for your preferred language locally, please refer to the instructions below.
 
-   2. **Java**
-      
-      Install [JDK](https://docs.oracle.com/en/java/javase/17/install/overview-jdk-installation.html) and run
-      ```shell
-      cd examples/java
-      ./gradlew bootRun
-      ```
+### NodeJS
 
-2. In your browser click on Log in with Singpass. (http://localhost:3080)
+Install [NodeJS and npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) and run:
+
+```shell
+cd examples/nodejs
+npm install
+npm start
+```
+
+### Java
+
+Install [JDK](https://docs.oracle.com/en/java/javase/17/install/overview-jdk-installation.html) and run:
+
+```shell
+cd examples/java
+./gradlew bootRun
+```
+
+## Using the Demo App
+
+Once your demo app is running, visit http://localhost:3080.
 
 ![before login screenshot](docs/before-login.png)
 
-3. After successfully login, you should see a user ID returned from Singpass API.
- 
+Click the "log in with Singpass" button. On the Singpass login page, select "password login". You may use the staging credentials below:
+
+```
+TODO
+```
+
+After successfully authenticating, you will be redirected to the demo app. If all went well, a UUID returned by the Singpass API will be shown.
+
 ![after login screenshot](docs/after-login.png)
