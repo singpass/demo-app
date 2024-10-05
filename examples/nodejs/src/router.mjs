@@ -70,7 +70,6 @@ router.get('/callback', async function handleSingpassCallback(ctx) {
     console.log('This is the user info returned:');
     console.log(userInfo);
 
-    ctx.session.auth = tokenSet;
     ctx.session.user = { ...tokenSet.claims(), ...userInfo };
     ctx.redirect('/');
   } catch (err) {
