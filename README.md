@@ -34,7 +34,8 @@ Once your demo app is running, visit http://localhost:3080.
 Click the "log in with Singpass" button. On the Singpass login page, select "password login". You may use the staging credentials below:
 
 ```
-TODO
+Singpass ID : F1612351W
+Password    : MyInfo2o15
 ```
 
 After successfully authenticating, you will be redirected to the demo app. If all went well, a UUID returned by the Singpass API will be shown.
