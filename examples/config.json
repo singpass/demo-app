@@ -3,6 +3,7 @@
     "CLIENT_ID": "RsrOy2iB0edR53TJSuD5ULad1pGmrVZL",
     "ISSUER_URL": "https://stg-id.singpass.gov.sg",
     "REDIRECT_URI": "http://localhost:3080/callback",
+    "SCOPES": "openid uinfin name",
     "KEYS": {
         "PRIVATE_SIG_KEY": {
           "alg": "ES256",

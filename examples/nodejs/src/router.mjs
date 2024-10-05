@@ -43,7 +43,7 @@ router.get('/login', async function handleLogin(ctx) {
     code_challenge,
     nonce,
     state,
-    scope: 'openid uinfin name',
+    scope: config.SCOPES,
   });
   ctx.redirect(authorizationUrl);
 });
