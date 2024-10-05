@@ -1,5 +1,5 @@
 import config from './config.mjs';
-import { Issuer, generators } from 'openid-client';
+import { Issuer, generators, custom } from 'openid-client';
 import * as crypto from 'crypto';
 import Router from '@koa/router';
 
@@ -13,9 +13,15 @@ const singpassClient = new singpassIssuer.Client(
     response_types: ['code'],
     token_endpoint_auth_method: 'private_key_jwt',
     id_token_signed_response_alg: config.KEYS.PRIVATE_SIG_KEY.alg,
+    userinfo_encrypted_response_alg: config.KEYS.PRIVATE_ENC_KEY.alg,
+    userinfo_encrypted_response_enc: 'A256GCM',
+    userinfo_signed_response_alg: config.KEYS.PRIVATE_SIG_KEY.alg,
   },
   { keys: [config.KEYS.PRIVATE_SIG_KEY, config.KEYS.PRIVATE_ENC_KEY] }
 );
+custom.setHttpOptionsDefaults({
+  timeout: 15000,
+});
 
 // This demo uses Koa for routing.
 
@@ -37,6 +43,7 @@ router.get('/login', async function handleLogin(ctx) {
     code_challenge,
     nonce,
     state,
+    scope: 'openid uinfin name',
   });
   ctx.redirect(authorizationUrl);
 });
@@ -45,20 +52,31 @@ router.get('/callback', async function handleSingpassCallback(ctx) {
   try {
     const receivedQueryParams = ctx.request.query;
     const { code_verifier, nonce, state } = ctx.session.auth;
-    const tokenSet = await singpassClient.callback(config.REDIRECT_URI, receivedQueryParams, { code_verifier, nonce, state });
-    ctx.session.auth = tokenSet;
-    ctx.session.user = { id: tokenSet.claims().sub };
-    ctx.redirect('/');
+    const tokenSet = await singpassClient.callback(config.REDIRECT_URI, receivedQueryParams, {
+      code_verifier,
+      nonce,
+      state,
+    });
     console.log('These are the claims in the ID token:');
     console.log(tokenSet.claims(), '\n');
-  } catch {
+
+    // UserInfo is only available for apps that have additional scopes beside the default scopes.
+    const userInfo = await singpassClient.userinfo(tokenSet.access_token);
+    console.log(userInfo);
+    // End of UserInfo.
+
+    ctx.session.auth = tokenSet;
+    ctx.session.user = {...tokenSet.claims(), ...userInfo};
+    ctx.redirect('/');
+  } catch (err) {
+    console.error(err);
     ctx.status = 401;
   }
 });
 
 router.get('/user', function getUser(ctx) {
   if (ctx.session.user) {
-    ctx.body = { id: ctx.session.user.id };
+    ctx.body = ctx.session.user;
   } else {
     ctx.status = 401;
   }
