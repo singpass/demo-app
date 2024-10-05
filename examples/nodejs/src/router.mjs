@@ -19,6 +19,7 @@ const singpassClient = new singpassIssuer.Client(
   },
   { keys: [config.KEYS.PRIVATE_SIG_KEY, config.KEYS.PRIVATE_ENC_KEY] }
 );
+
 custom.setHttpOptionsDefaults({
   timeout: 15000,
 });
@@ -37,6 +38,8 @@ router.get('/login', async function handleLogin(ctx) {
   const nonce = crypto.randomUUID();
   const state = crypto.randomBytes(16).toString('hex');
   ctx.session.auth = { code_verifier, nonce, state };
+
+  // Authorization request
   const authorizationUrl = singpassClient.authorizationUrl({
     redirect_uri: config.REDIRECT_URI,
     code_challenge_method: 'S256',
@@ -52,21 +55,23 @@ router.get('/callback', async function handleSingpassCallback(ctx) {
   try {
     const receivedQueryParams = ctx.request.query;
     const { code_verifier, nonce, state } = ctx.session.auth;
+
+    // Token request
     const tokenSet = await singpassClient.callback(config.REDIRECT_URI, receivedQueryParams, {
       code_verifier,
       nonce,
       state,
     });
     console.log('These are the claims in the ID token:');
-    console.log(tokenSet.claims(), '\n');
+    console.log(tokenSet.claims());
 
-    // UserInfo is only available for apps that have additional scopes beside the default scopes.
+    // Userinfo request (available only to apps with additional allowed scopes, beyond just 'openid').
     const userInfo = await singpassClient.userinfo(tokenSet.access_token);
+    console.log('This is the user info returned:');
     console.log(userInfo);
-    // End of UserInfo.
 
     ctx.session.auth = tokenSet;
-    ctx.session.user = {...tokenSet.claims(), ...userInfo};
+    ctx.session.user = { ...tokenSet.claims(), ...userInfo };
     ctx.redirect('/');
   } catch (err) {
     console.error(err);
