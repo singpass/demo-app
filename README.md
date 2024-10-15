@@ -35,7 +35,7 @@ Click the "log in with Singpass" button. On the Singpass login page, select "pas
 
 ```
 Singpass ID : S7790795E
-Password    : Demo@123
+Password    : T4!vY9@xL7$p
 ```
 
 After successfully authenticating, you will be redirected to the demo app. If all went well, a UUID returned by the Singpass API will be shown.
