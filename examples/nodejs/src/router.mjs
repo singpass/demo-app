@@ -66,7 +66,7 @@ router.get('/callback', async function handleSingpassCallback(ctx) {
     console.log(tokenSet.claims());
 
     // Userinfo request (available only to apps with additional allowed scopes, beyond just 'openid').
-    const userInfo = await singpassClient.userinfo(tokenSet.access_token);
+    const userInfo = await singpassClient.userinfo(tokenSet);
     console.log('This is the user info returned:');
     console.log(userInfo);
 
