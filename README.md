@@ -2,6 +2,8 @@
 
 This repository provides examples of how you might integrate with Singpass (an OIDC provider) as an OIDC client.
 
+Currently, we have only one example using NodeJS. A Java example is in the works.
+
 ## Running the Demo App Locally
 
 To run the demo app for your preferred language locally, please refer to the instructions below.
@@ -14,15 +16,6 @@ Install [NodeJS and npm](https://docs.npmjs.com/downloading-and-installing-node-
 cd examples/nodejs
 npm install
 npm start
-```
-
-### Java
-
-Install [JDK](https://docs.oracle.com/en/java/javase/17/install/overview-jdk-installation.html) and run:
-
-```shell
-cd examples/java
-./gradlew bootRun
 ```
 
 ## Using the Demo App
