@@ -9,10 +9,12 @@ const singpassIssuer = await Issuer.discover(config.ISSUER_URL);
 
 const singpassClient = new singpassIssuer.Client(
   {
+    // All the hardcoded values used below are taken from Singpass' OpenID Provider Metadata,
+    // which can be found at config.ISSUER_URL + '/.well-known/openid-configuration'
     client_id: config.CLIENT_ID,
     response_types: ['code'],
     token_endpoint_auth_method: 'private_key_jwt',
-    id_token_signed_response_alg: config.KEYS.PRIVATE_SIG_KEY.alg,
+    id_token_signed_response_alg: 'ES256',
     userinfo_encrypted_response_alg: config.KEYS.PRIVATE_ENC_KEY.alg,
     userinfo_encrypted_response_enc: 'A256GCM',
     userinfo_signed_response_alg: config.KEYS.PRIVATE_SIG_KEY.alg,
