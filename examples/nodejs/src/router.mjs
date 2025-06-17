@@ -7,7 +7,7 @@ import Router from '@koa/router';
 
 const singpassIssuer = await Issuer.discover(config.ISSUER_URL);
 
-const singpassClient = new singpassIssuer.Client(
+let singpassClient = new singpassIssuer.Client(
   {
     // All the hardcoded values used below are taken from Singpass' OpenID Provider Metadata,
     // which can be found at config.ISSUER_URL + '/.well-known/openid-configuration'
@@ -21,6 +21,30 @@ const singpassClient = new singpassIssuer.Client(
   },
   { keys: [config.KEYS.PRIVATE_SIG_KEY, config.KEYS.PRIVATE_ENC_KEY] }
 );
+
+async function refreshIssuerConfig() {
+  try {
+    const newIssuerConfig = await Issuer.discover(config.ISSUER_URL);
+    singpassClient = new newIssuerConfig.Client({
+      client_id: config.CLIENT_ID,
+      response_types: ['code'],
+      token_endpoint_auth_method: 'private_key_jwt',
+      id_token_signed_response_alg: 'ES256',
+      userinfo_encrypted_response_alg: config.KEYS.PRIVATE_ENC_KEY.alg,
+      userinfo_encrypted_response_enc: 'A256GCM',
+      userinfo_signed_response_alg: config.KEYS.PRIVATE_SIG_KEY.alg,
+    }, { 
+      keys: [config.KEYS.PRIVATE_SIG_KEY, config.KEYS.PRIVATE_ENC_KEY] 
+    });
+
+  } catch (error) {
+    console.error('Failed to refresh issuer configuration:', error);
+  }
+}
+
+// Recommended to refresh the issuer as opposed to caching indefinitely
+const ONE_HOUR_IN_MS = 60 * 60 * 1000;
+setInterval(refreshIssuerConfig, ONE_HOUR_IN_MS);
 
 custom.setHttpOptionsDefaults({
   timeout: 15000,
