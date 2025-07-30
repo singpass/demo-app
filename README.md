@@ -22,7 +22,7 @@ npm start
 
 Once your demo app is running, visit http://localhost:3080.
 
-![before login screenshot](docs/before-login.png)
+![before login screenshot](docs/pre-login.png)
 
 Click the "log in with Singpass" button. On the Singpass login page, select "password login". You may use the staging example credentials below:
 
@@ -33,4 +33,4 @@ Password    : T4!vY9@xL7$p
 
 After successfully authenticating, you will be redirected to the demo app. If all went well, a UUID returned by the Singpass API will be shown.
 
-![after login screenshot](docs/after-login.png)
+![after login screenshot](docs/post-login.png)
