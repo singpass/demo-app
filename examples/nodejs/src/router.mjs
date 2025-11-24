@@ -17,7 +17,10 @@ let singpassClient = new singpassIssuer.Client(
     id_token_signed_response_alg: 'ES256',
     userinfo_encrypted_response_alg: config.KEYS.PRIVATE_ENC_KEY.alg,
     userinfo_encrypted_response_enc: 'A256GCM',
-    userinfo_signed_response_alg: config.KEYS.PRIVATE_SIG_KEY.alg,
+    userinfo_signed_response_alg: 'ES256',
+    // The following two fields are only required if the client's (RP) profile is 'direct_pii_allowed'.
+    // id_token_encrypted_response_alg: config.KEYS.PRIVATE_ENC_KEY.alg,
+    // id_token_encrypted_response_enc: 'A256CBC-HS512',
   },
   { keys: [config.KEYS.PRIVATE_SIG_KEY, config.KEYS.PRIVATE_ENC_KEY] }
 );
