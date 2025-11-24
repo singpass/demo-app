@@ -1,8 +1,9 @@
 {
   "name": "demo-app",
+  "type": "module",
   "version": "0.0.1",
   "scripts": {
-    "start": "node src/server.mjs"
+    "start": "tsx src/server.ts"
   },
   "license": "MIT",
   "dependencies": {
@@ -14,7 +15,12 @@
     "openid-client": "^5.6.5"
   },
   "devDependencies": {
-    "prettier": "latest"
+    "@types/koa__router": "^12.0.5",
+    "@types/koa-logger": "^3.1.5",
+    "@types/koa-session": "^6.4.5",
+    "@types/koa-static": "^4.0.4",
+    "prettier": "latest",
+    "tsx": "^4.20.6"
   },
   "prettier": {
     "printWidth": 120,
