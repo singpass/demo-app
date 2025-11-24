@@ -7,6 +7,14 @@ import Router from '@koa/router';
 // Keys imported using crypto.subtle.importKey do not retain the 'kid' nor 'alg' properties, but both are needed
 // for this OIDC client library (e.g. to pick the correct decryption key to use), so we provide them here
 
+const publicSigningKey = {
+  kid: config.KEYS.PUBLIC_SIG_KEY.kid,
+  alg: config.KEYS.PUBLIC_SIG_KEY.alg,
+  key: await crypto.subtle.importKey('jwk', config.KEYS.PUBLIC_SIG_KEY, { name: 'ECDSA', namedCurve: 'P-256' }, true, [
+    'verify',
+  ]),
+};
+
 const privateSigningKey = {
   kid: config.KEYS.PRIVATE_SIG_KEY.kid,
   alg: config.KEYS.PRIVATE_SIG_KEY.alg,
@@ -27,6 +35,25 @@ const privateEncryptionKey = {
     'deriveBits',
   ]),
 };
+
+function getDpopOptions() {
+  return {
+    DPoP: openidClient.getDPoPHandle(
+      singpassConfig,
+      {
+        privateKey: privateSigningKey.key,
+        publicKey: publicSigningKey.key,
+      },
+      {
+        [openidClient.modifyAssertion]: (_header, payload) => {
+          // Manually set DPoP token's 'exp' claim to be 2 minutes after 'iat' claim, as
+          // Singpass expects DPoP tokens to be valid for up to 2 minutes only
+          if (typeof payload.iat === 'number') payload.exp = payload.iat + 120;
+        },
+      }
+    ),
+  };
+}
 
 let singpassConfig: openidClient.Configuration;
 await initializeSingpassConfig();
@@ -78,14 +105,18 @@ router.get('/login', async function handleLogin(ctx) {
   ctx.session.auth = { code_verifier, nonce, state };
 
   // Authorization request
-  const redirectTo = openidClient.buildAuthorizationUrl(singpassConfig, {
-    redirect_uri: config.REDIRECT_URI,
-    code_challenge_method: 'S256',
-    code_challenge,
-    nonce,
-    state,
-    scope: config.SCOPES,
-  });
+  const redirectTo = await openidClient.buildAuthorizationUrlWithPAR(
+    singpassConfig,
+    {
+      redirect_uri: config.REDIRECT_URI,
+      code_challenge_method: 'S256',
+      code_challenge,
+      nonce,
+      state,
+      scope: config.SCOPES,
+    },
+    getDpopOptions()
+  );
   ctx.redirect(redirectTo.href);
 });
 
@@ -95,12 +126,18 @@ router.get('/callback', async function handleSingpassCallback(ctx) {
     const { code_verifier, nonce, state } = ctx.session.auth;
 
     // Token request
-    const tokens = await openidClient.authorizationCodeGrant(singpassConfig, currentUrl, {
-      pkceCodeVerifier: code_verifier,
-      expectedNonce: nonce,
-      expectedState: state,
-      idTokenExpected: true,
-    });
+    const tokens = await openidClient.authorizationCodeGrant(
+      singpassConfig,
+      currentUrl,
+      {
+        pkceCodeVerifier: code_verifier,
+        expectedNonce: nonce,
+        expectedState: state,
+        idTokenExpected: true,
+      },
+      undefined,
+      getDpopOptions()
+    );
     const idTokenClaims = tokens.claims();
     console.log('These are the claims in the ID token:');
     console.log(idTokenClaims);
@@ -110,7 +147,12 @@ router.get('/callback', async function handleSingpassCallback(ctx) {
     }
 
     // Userinfo request (this is only necessary if your app is a Myinfo app).
-    const userInfo = await openidClient.fetchUserInfo(singpassConfig, tokens.access_token, idTokenClaims.sub);
+    const userInfo = await openidClient.fetchUserInfo(
+      singpassConfig,
+      tokens.access_token,
+      idTokenClaims.sub,
+      getDpopOptions()
+    );
     console.log('This is the user info returned:');
     console.log(userInfo);
 
