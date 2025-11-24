@@ -1,11 +1,11 @@
-import config from './config.mjs';
-import { Issuer, generators, custom } from 'openid-client';
+import config from '../../config.json';
+import { Issuer, generators, custom, BaseClient } from 'openid-client';
 import * as crypto from 'crypto';
 import Router from '@koa/router';
 
 // This demo uses panva/node-openid-client, an off-the-shelf OIDC client library.
 
-let singpassClient;
+let singpassClient: BaseClient;
 await initializeSingpassClient();
 
 /**
