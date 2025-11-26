@@ -3,6 +3,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Singpass Demo App</title>
     <link rel="stylesheet" href="style.css" />
     <link
@@ -10,37 +11,187 @@
       href="data:;base64,iVBORw0KGgo="
       id="this-is-a-dummy-favicon"
     />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   </head>
 
   <body>
-    <main>
-      <h1>Singpass Demo App</h1>
-      <a href="https://docs.developer.singpass.gov.sg" target="_blank"
-        >Documentation</a
-      >
-      <p id="msg"></p>
-      <a href="/login" id="login" class="btn"
-        >Log in with <img src="singpass.svg" alt="Singpass"
-      /></a>
-      <a href="/logout" id="logout" class="btn">Log out</a>
-    </main>
-  </body>
+    <div class="container">
+      <header class="header">
+        <div class="header-content">
+          <h1 class="app-title">Singpass Demo App</h1>
+          <a href="https://docs.developer.singpass.gov.sg" target="_blank" class="docs-link">
+            <i class="fas fa-book"></i>
+            Documentation
+          </a>
+        </div>
+      </header>
 
-  <script>
-    const msg = document.getElementById("msg");
-    const login = document.getElementById("login");
-    const logout = document.getElementById("logout");
-    fetch("/user").then(async (res) => {
-      if (res.status === 200) {
-        const userInfo = await res.json();
-        msg.innerText = `Thanks for logging in ${userInfo.name.value}. Your UINFIN is ${userInfo.uinfin.value}.`;
-        login.style.display = "none";
-        logout.style.display = "inline-flex";
-      } else {
-        msg.innerText = "You are not logged in.";
-        login.style.display = "inline-flex";
-        logout.style.display = "none";
+      <main class="main-content">
+        <div class="login-state" id="login-state">
+          <div class="card">
+            <h2 class="card-title">Welcome</h2>
+            <p class="card-description">Click below to login with your Singpass account</p>
+            
+            <div class="login-button-container">
+              <a href="/login" class="singpass-button">
+                <span>Log in with</span>
+                <img src="singpass.svg" alt="Singpass" />
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="logged-in-state" id="logged-in-state" style="display: none;">
+          <div class="card">
+            <div class="user-header">
+              <div class="user-info">
+                <h2 class="user-name" id="user-name">User Name</h2>
+                <p class="user-id" id="user-id">UIN: S7790795E</p>
+              </div>
+              <a href="/logout" class="logout-button">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+              </a>
+            </div>
+
+            <div class="user-details">
+              <h3>User Details</h3>
+              
+              <div class="detail-row">
+                <div class="detail-label">Name</div>
+                <div class="detail-value" id="detail-name">TAN SOOK MUN, EMILY</div>
+                <button class="copy-button" data-value="TAN SOOK MUN, EMILY">
+                  <i class="fas fa-copy"></i>
+                </button>
+              </div>
+
+              <div class="detail-row">
+                <div class="detail-label">UIN/FIN</div>
+                <div class="detail-value" id="detail-uinfin">S7790795E</div>
+                <button class="copy-button" data-value="S7790795E">
+                  <i class="fas fa-copy"></i>
+                </button>
+              </div>
+
+              <div class="detail-row">
+                <div class="detail-label">Issuer</div>
+                <div class="detail-value" id="detail-issuer">stg-id.singpass.gov.sg</div>
+              </div>
+
+              <div class="detail-row">
+                <div class="detail-label">Subject</div>
+                <div class="detail-value" id="detail-subject">u=b91e8e72-8d66-4b37-a677-cc621fc6024c</div>
+              </div>
+
+              <div class="detail-row">
+                <div class="detail-label">Audience</div>
+                <div class="detail-value" id="detail-audience">RsrOy2iB0edR53TJSuD5ULad1pGmrVZL</div>
+              </div>
+
+              <div class="detail-row">
+                <div class="detail-label">Issued At</div>
+                <div class="detail-value" id="detail-issued">1751798919</div>
+              </div>
+
+              <div class="detail-row">
+                <div class="detail-label">Name Last Updated</div>
+                <div class="detail-value" id="name-lastupdated">N/A</div>
+              </div>
+
+              <div class="detail-row">
+                <div class="detail-label">Name Source</div>
+                <div class="detail-value" id="name-source">N/A</div>
+              </div>
+
+              <div class="detail-row">
+                <div class="detail-label">Name Classification</div>
+                <div class="detail-value" id="name-classification">N/A</div>
+              </div>
+
+              <div class="detail-row">
+                <div class="detail-label">UIN/FIN Last Updated</div>
+                <div class="detail-value" id="uinfin-lastupdated">N/A</div>
+              </div>
+
+              <div class="detail-row">
+                <div class="detail-label">UIN/FIN Source</div>
+                <div class="detail-value" id="uinfin-source">N/A</div>
+              </div>
+
+              <div class="detail-row">
+                <div class="detail-label">UIN/FIN Classification</div>
+                <div class="detail-value" id="uinfin-classification">N/A</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      function copyToClipboard(text) {
+        navigator.clipboard.writeText(text);
       }
-    });
-  </script>
+
+      document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.copy-button').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const value = this.getAttribute('data-value');
+            copyToClipboard(value);
+            
+            const icon = this.querySelector('i');
+            icon.className = 'fas fa-check';
+            setTimeout(() => {
+              icon.className = 'fas fa-copy';
+            }, 1000);
+          });
+        });
+      });
+
+      fetch("/user")
+        .then(async (res) => {
+          const loginState = document.getElementById('login-state');
+          const loggedInState = document.getElementById('logged-in-state');
+          
+          if (res.status === 200) {
+            const userInfo = await res.json();
+            
+            document.getElementById('user-name').textContent = userInfo.name.value;
+            document.getElementById('user-id').textContent = `UIN: ${userInfo.uinfin.value}`;
+            document.getElementById('detail-name').textContent = userInfo.name.value;
+            document.getElementById('detail-uinfin').textContent = userInfo.uinfin.value;
+            document.getElementById('detail-issuer').textContent = userInfo.iss.replace(/^https?:\/\//, '');
+            document.getElementById('detail-subject').textContent = userInfo.sub;
+            document.getElementById('detail-audience').textContent = userInfo.aud;
+            document.getElementById('detail-issued').textContent = userInfo.iat;
+            
+            document.getElementById('name-lastupdated').textContent = userInfo.name.lastupdated;
+            document.getElementById('name-source').textContent = userInfo.name.source;
+            document.getElementById('name-classification').textContent = userInfo.name.classification;
+            document.getElementById('uinfin-lastupdated').textContent = userInfo.uinfin.lastupdated;
+            document.getElementById('uinfin-source').textContent = userInfo.uinfin.source;
+            document.getElementById('uinfin-classification').textContent = userInfo.uinfin.classification;
+            
+            document.querySelectorAll('[data-value]').forEach(btn => {
+              if (btn.getAttribute('data-value') === 'TAN SOOK MUN, EMILY') {
+                btn.setAttribute('data-value', userInfo.name.value);
+              } else if (btn.getAttribute('data-value') === 'S7790795E') {
+                btn.setAttribute('data-value', userInfo.uinfin.value);
+              }
+            });
+            
+            loginState.style.display = 'none';
+            loggedInState.style.display = 'block';
+          } else {
+            loginState.style.display = 'block';
+            loggedInState.style.display = 'none';
+          }
+        })
+        .catch(() => {
+          loginState.style.display = 'block';
+          loggedInState.style.display = 'none';
+        });
+    </script>
+  </body>
 </html>
