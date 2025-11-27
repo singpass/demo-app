@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 
 <html lang="en">
   <head>
@@ -33,7 +33,7 @@
     fetch("/user").then(async (res) => {
       if (res.status === 200) {
         const userInfo = await res.json();
-        msg.innerText = `Thanks for logging in ${userInfo.name.value}. Your UINFIN is ${userInfo.uinfin.value}.`;
+        msg.innerText = `Thanks for logging in ${userInfo.person_info.name.value}. Your UINFIN is ${userInfo.person_info.uinfin.value}.`;
         login.style.display = "none";
         logout.style.display = "inline-flex";
       } else {
