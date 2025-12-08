@@ -7,11 +7,17 @@ import serve from 'koa-static';
 import session from 'koa-session';
 
 function createInMemorySessionStore() {
-  const map = new Map();
+  const sessions = new Map<string, unknown>();
   return {
-    get: map.get.bind(map),
-    set: map.set.bind(map),
-    destroy: map.delete.bind(map),
+    async get(key: string) {
+      return sessions.get(key);
+    },
+    async set(key: string, value: unknown) {
+      sessions.set(key, value);
+    },
+    async destroy(key: string) {
+      sessions.delete(key);
+    },
   };
 }
 
