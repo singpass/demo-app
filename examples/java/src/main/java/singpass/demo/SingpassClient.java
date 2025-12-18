@@ -159,6 +159,9 @@ public class SingpassClient {
                 .nonce(nonce)
                 .codeChallenge(verifier, CodeChallengeMethod.S256)
                 .state(state)
+                // these two custom parameters are only necessary if your app is a Login app
+                // .customParameter("authentication_context_type", "APP_ONBOARDING_DEFAULT")
+                // .customParameter("authentication_context_message", "demo app")
                 .endpointURI(providerMeta.getAuthorizationEndpointURI())
                 .build();
 
@@ -286,6 +289,7 @@ public class SingpassClient {
         System.out.println("These are the claims in the ID token:");
         System.out.println(idTokenClaims.toJSONObject());
 
+        // note: userinfo request is only relevant if your app is a Myinfo app
         DPoPAccessToken accessToken = tokenResp.getTokens().getDPoPAccessToken();
         JWT userInfoJWT = makeUserInfoRequest(dpopKey, accessToken);
         Map<String, Object> userInfoClaims = decryptAndParseUserInfo(userInfoJWT);
