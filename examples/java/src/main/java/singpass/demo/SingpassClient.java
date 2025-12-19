@@ -1,6 +1,8 @@
 package singpass.demo;
 
 import java.net.URI;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -105,7 +107,7 @@ public class SingpassClient {
     * we recommend reinitializing it periodically (an hour or more apart). 
     */
     public void refreshIfNeeded() throws Exception {
-        if (System.currentTimeMillis() - lastRefresh > ONE_HOUR_MS) {
+        if (System.currentTimeMillis() - lastRefresh > Duration.ofHours(1).toMillis()) {
             refreshMetadata();
         }
     }
@@ -138,7 +140,7 @@ public class SingpassClient {
         // so we add expiration time manually
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder(
                 DPoPUtils.createJWTClaimsSet(new JWTID(), httpMethod, uri, new Date(), accessToken, null))
-                .expirationTime(new Date(new Date().getTime() + ONE_MINUTE_MS))
+                .expirationTime(Date.from(Instant.now().plusSeconds(JWT_EXPIRY_SECONDS)))
                 .build();
 
         SignedJWT signedJWT = new SignedJWT(jwsHeader, jwtClaimsSet);
@@ -150,7 +152,7 @@ public class SingpassClient {
         JWTAuthenticationClaimsSet claimsSet = new JWTAuthenticationClaimsSet(
                 cfg.clientId,
                 new Audience(endpoint.toString()).toSingleAudienceList(),
-                new Date(new Date().getTime() + ONE_MINUTE_MS),
+                Date.from(Instant.now().plusSeconds(JWT_EXPIRY_SECONDS)),
                 null,
                 new Date(),
                 new JWTID());
