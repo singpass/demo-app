@@ -13,6 +13,8 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.util.Map;
 
+import static singpass.demo.Constants.*;
+
 public class DemoServer {
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final SessionManager sessions = new SessionManager();
@@ -20,7 +22,7 @@ public class DemoServer {
     private static ConfigLoader config;
 
     public static void main(String[] args) throws Exception {
-        config = new ConfigLoader("../config.json");
+        config = new ConfigLoader(CONFIG_PATH);
         oidcClient = new SingpassClient(config);
 
         HttpServer server = HttpServer.create(new InetSocketAddress(config.serverPort), 0);
@@ -61,14 +63,15 @@ public class DemoServer {
         if (path.equals("/"))
             path = "/index.html";
 
-        File file = new File("../frontend" + path);
+        File file = new File(FRONTEND_DIRECTORY + path);
         if (!file.exists() || file.isDirectory()) {
             sendResponse(httpExchange, 404, "Not Found");
             return;
         }
 
-        String contentType = path.endsWith(".html") ? "text/html"
-                : path.endsWith(".css") ? "text/css" : path.endsWith(".svg") ? "image/svg+xml" : "text/plain";
+        String contentType = path.endsWith(".html") ? CONTENT_TYPE_HTML
+                : path.endsWith(".css") ? CONTENT_TYPE_CSS
+                        : path.endsWith(".svg") ? CONTENT_TYPE_SVG : CONTENT_TYPE_PLAIN_TEXT;
 
         byte[] content = Files.readAllBytes(file.toPath());
         httpExchange.getResponseHeaders().set("Content-Type", contentType);
@@ -175,13 +178,13 @@ public class DemoServer {
         String sessionId = extractSessionId(httpExchange);
         if (sessionId == null || sessions.retrieve(sessionId) == null) {
             sessionId = sessions.newSession();
-            httpExchange.getResponseHeaders().set("Set-Cookie", "sessionId=" + sessionId + "; Path=/");
+            httpExchange.getResponseHeaders().set("Set-Cookie", SESSION_COOKIE_NAME + "=" + sessionId + "; Path=/");
         }
         return sessionId;
     }
 
     private static void clearSessionAndRedirect(HttpExchange httpExchange) throws Exception {
-        httpExchange.getResponseHeaders().set("Set-Cookie", "sessionId=; Max-Age=0; Path=/");
+        httpExchange.getResponseHeaders().set("Set-Cookie", SESSION_COOKIE_NAME + "=; Max-Age=0; Path=/");
         httpExchange.getResponseHeaders().set("Location", "/");
         httpExchange.sendResponseHeaders(302, -1);
         httpExchange.close();
@@ -192,7 +195,7 @@ public class DemoServer {
         if (cookie != null) {
             for (String part : cookie.split(";")) {
                 String[] kv = part.trim().split("=", 2);
-                if (kv.length == 2 && kv[0].equals("sessionId")) {
+                if (kv.length == 2 && kv[0].equals(SESSION_COOKIE_NAME)) {
                     return kv[1];
                 }
             }
@@ -202,7 +205,7 @@ public class DemoServer {
 
     private static void sendJson(HttpExchange httpExchange, int status, Object data) throws Exception {
         byte[] response = JSON.writeValueAsBytes(data);
-        httpExchange.getResponseHeaders().set("Content-Type", "application/json");
+        httpExchange.getResponseHeaders().set("Content-Type", CONTENT_TYPE_JSON);
         httpExchange.sendResponseHeaders(status, response.length);
         httpExchange.getResponseBody().write(response);
         httpExchange.close();

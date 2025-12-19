@@ -1,0 +1,22 @@
+package singpass.demo;
+
+public final class Constants {
+  private Constants() {
+  }
+
+  public static final String SESSION_COOKIE_NAME = "sessionId";
+
+  public static final String CONFIG_PATH = "../config.json";
+  public static final String FRONTEND_DIRECTORY = "../frontend";
+
+  public static final long ONE_MINUTE_MS = 60 * 1000;
+  public static final long ONE_HOUR_MS = 60 * 60 * 1000;
+
+  public static final String CONTENT_TYPE_HTML = "text/html";
+  public static final String CONTENT_TYPE_CSS = "text/css";
+  public static final String CONTENT_TYPE_SVG = "image/svg+xml";
+  public static final String CONTENT_TYPE_PLAIN_TEXT = "text/plain";
+  public static final String CONTENT_TYPE_JSON = "application/json";
+
+  public static final String DPOP_JWT_TYPE = "dpop+jwt";
+}

@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static singpass.demo.Constants.*;
+
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWEObject;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -103,8 +105,7 @@ public class SingpassClient {
     * we recommend reinitializing it periodically (an hour or more apart). 
     */
     public void refreshIfNeeded() throws Exception {
-        long oneHour = 60 * 60 * 1000;
-        if (System.currentTimeMillis() - lastRefresh > oneHour) {
+        if (System.currentTimeMillis() - lastRefresh > ONE_HOUR_MS) {
             refreshMetadata();
         }
     }
@@ -128,7 +129,7 @@ public class SingpassClient {
             throws Exception {
         JWSAlgorithm alg = JWSAlgorithm.parse(dpopKey.getAlgorithm().getName());
         JWSHeader jwsHeader = new JWSHeader.Builder(alg)
-                .type(new JOSEObjectType("dpop+jwt"))
+                .type(new JOSEObjectType(DPOP_JWT_TYPE))
                 .jwk(dpopKey.toPublicJWK())
                 .build();
         JWSSigner signer = new DefaultJWSSignerFactory().createJWSSigner(dpopKey, alg);
@@ -137,7 +138,7 @@ public class SingpassClient {
         // so we add expiration time manually
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder(
                 DPoPUtils.createJWTClaimsSet(new JWTID(), httpMethod, uri, new Date(), accessToken, null))
-                .expirationTime(new Date(new Date().getTime() + 60 * 1000))
+                .expirationTime(new Date(new Date().getTime() + ONE_MINUTE_MS))
                 .build();
 
         SignedJWT signedJWT = new SignedJWT(jwsHeader, jwtClaimsSet);
@@ -149,7 +150,7 @@ public class SingpassClient {
         JWTAuthenticationClaimsSet claimsSet = new JWTAuthenticationClaimsSet(
                 cfg.clientId,
                 new Audience(endpoint.toString()).toSingleAudienceList(),
-                new Date(new Date().getTime() + 60 * 1000),
+                new Date(new Date().getTime() + ONE_MINUTE_MS),
                 null,
                 new Date(),
                 new JWTID());
@@ -167,7 +168,7 @@ public class SingpassClient {
     */
     public URI buildAuthUrl(CodeVerifier verifier, Nonce nonce, State state, ECKey dpopKey) throws Exception {
         AuthenticationRequest authReq = new AuthenticationRequest.Builder(
-                new ResponseType("code"),
+                ResponseType.CODE,
                 new Scope(cfg.scopes.split(" ")),
                 cfg.clientId,
                 cfg.redirectUri)
@@ -201,7 +202,7 @@ public class SingpassClient {
         PushedAuthorizationSuccessResponse success = parsedResp.toSuccessResponse();
 
         return new AuthorizationRequest.Builder(
-                new ResponseType("code"),
+                ResponseType.CODE,
                 cfg.clientId)
                 .requestURI(success.getRequestURI())
                 .endpointURI(providerMeta.getAuthorizationEndpointURI())
