@@ -88,10 +88,7 @@ public class SingpassClient {
 
     /**
     * Fetches the OpenID Provider configuration from the well-known endpoint.
-    * This discovery document tells us where all the OAuth2/OIDC endpoints are located.
-    * To keep your Singpass OIDC client up-to-date with any changes to Singpass' OIDC config, 
-    * we recommend reinitializing it periodically (an hour or more apart). 
-    * This pulls the latest OIDC config and updates the client accordingly.
+    * This discovery document tells us where all the OAuth2/OIDC endpoints are located.    
     */
     public void refreshMetadata() throws Exception {
         this.providerMeta = OIDCProviderMetadata.resolve(new Issuer(cfg.issuerUrl));
@@ -101,6 +98,10 @@ public class SingpassClient {
                 .fromJWKSource(JWKSourceBuilder.create(providerMeta.getJWKSetURI().toURL()).build());
     }
 
+    /**
+    * To keep your Singpass OIDC client up-to-date with any changes to Singpass' OIDC config, 
+    * we recommend reinitializing it periodically (an hour or more apart). 
+    */
     public void refreshIfNeeded() throws Exception {
         long oneHour = 60 * 60 * 1000;
         if (System.currentTimeMillis() - lastRefresh > oneHour) {
@@ -108,6 +109,14 @@ public class SingpassClient {
         }
     }
 
+    /**
+    * Generates an ephemeral DPoP key pair for this authentication session,
+    * used for binding access tokens and authorization codes to this key pair.
+    * This prevents stolen tokens from being used by attackers,
+    * since they won't have the private key needed to create valid DPoP proofs.
+    * 
+    * To protect against potential key leakage, a new key should be generated for each session.
+    */
     public ECKey generateDPoPKey() throws Exception {
         return new ECKeyGenerator(Curve.P_256)
                 .algorithm(JWSAlgorithm.ES256)
@@ -150,6 +159,12 @@ public class SingpassClient {
                 cfg.privateSigningKey.getKeyID(), null);
     }
 
+    /**
+    * Builds the authorization URL using Pushed Authorization Request (PAR).
+    * 
+    * The user should be redirected to the URL returned by this function,
+    * which will bring them to the Singpass Login page to perform authentication.
+    */
     public URI buildAuthUrl(CodeVerifier verifier, Nonce nonce, State state, ECKey dpopKey) throws Exception {
         AuthenticationRequest authReq = new AuthenticationRequest.Builder(
                 new ResponseType("code"),
@@ -194,6 +209,10 @@ public class SingpassClient {
                 .toURI();
     }
 
+    /**
+     * Extracts and returns the authorization code from the callback after user login.
+     * This method will also perform validation of the "state parameter" to protect against CSRF attacks.
+     */
     public AuthorizationCode getAuthCodeFromCallback(URI callbackUri, State expectedState) throws Exception {
         AuthenticationResponse response = AuthenticationResponseParser.parse(callbackUri);
         if (response instanceof AuthenticationErrorResponse) {
@@ -282,6 +301,16 @@ public class SingpassClient {
         return userInfoClaimsSet.getClaims();
     }
 
+    /**
+     * Exchanges the authorization code for tokens and retrieves user information.
+     * 
+     * This method will:
+     * 1. Trade the authorization code for tokens (access token and ID token)
+     * 2. Decrypt and validate the ID token
+     * 3. Use the access token to fetch detailed user information from the userinfo endpoint
+     * 4. Decrypt and validate the userinfo response
+     * 5. Combine everything into a complete user profile
+     */
     public Map<String, Object> exchangeCode(AuthorizationCode code, CodeVerifier verifier, Nonce nonce,
             State state, URI callbackUri, ECKey dpopKey) throws Exception {
         OIDCTokenResponse tokenResp = makeTokenRequest(code, verifier, dpopKey);
