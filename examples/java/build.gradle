@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'singpass.demo'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.nimbusds:oauth2-oidc-sdk:11.9.1'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.1'
+}
+
+application {
+    mainClass = 'singpass.demo.DemoServer'
+}
+
+tasks.named('run') {
+    standardInput = System.in
+}
