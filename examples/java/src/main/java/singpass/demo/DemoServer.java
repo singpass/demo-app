@@ -25,12 +25,13 @@ public class DemoServer {
 
         HttpServer server = HttpServer.create(new InetSocketAddress(config.serverPort), 0);
 
-        server.createContext("/", ex -> handleRequest(ex, DemoServer::serveStatic));
-        server.createContext("/.well-known/jwks.json", ex -> handleRequest(ex, DemoServer::handleJwks));
-        server.createContext("/login", ex -> handleRequest(ex, DemoServer::handleLogin));
-        server.createContext("/callback", ex -> handleRequest(ex, DemoServer::handleCallback));
-        server.createContext("/user", ex -> handleRequest(ex, DemoServer::handleUser));
-        server.createContext("/logout", ex -> handleRequest(ex, DemoServer::handleLogout));
+        server.createContext("/", httpExchange -> handleRequest(httpExchange, DemoServer::serveStatic));
+        server.createContext("/.well-known/jwks.json",
+                httpExchange -> handleRequest(httpExchange, DemoServer::handleJwks));
+        server.createContext("/login", httpExchange -> handleRequest(httpExchange, DemoServer::handleLogin));
+        server.createContext("/callback", httpExchange -> handleRequest(httpExchange, DemoServer::handleCallback));
+        server.createContext("/user", httpExchange -> handleRequest(httpExchange, DemoServer::handleUser));
+        server.createContext("/logout", httpExchange -> handleRequest(httpExchange, DemoServer::handleLogout));
 
         server.setExecutor(null);
         server.start();
@@ -38,13 +39,13 @@ public class DemoServer {
         System.out.println("Server running on http://localhost:" + config.serverPort);
     }
 
-    private static void handleRequest(HttpExchange ex, Handler handler) {
+    private static void handleRequest(HttpExchange httpExchange, Handler handler) {
         try {
-            handler.handle(ex);
+            handler.handle(httpExchange);
         } catch (Exception e) {
             e.printStackTrace();
             try {
-                sendResponse(ex, 500, "Internal Server Error: " + e.getMessage());
+                sendResponse(httpExchange, 500, "Internal Server Error: " + e.getMessage());
             } catch (Exception ignored) {
             }
         }
@@ -52,17 +53,17 @@ public class DemoServer {
 
     @FunctionalInterface
     private interface Handler {
-        void handle(HttpExchange ex) throws Exception;
+        void handle(HttpExchange httpExchange) throws Exception;
     }
 
-    private static void serveStatic(HttpExchange ex) throws Exception {
-        String path = ex.getRequestURI().getPath();
+    private static void serveStatic(HttpExchange httpExchange) throws Exception {
+        String path = httpExchange.getRequestURI().getPath();
         if (path.equals("/"))
             path = "/index.html";
 
         File file = new File("../frontend" + path);
         if (!file.exists() || file.isDirectory()) {
-            sendResponse(ex, 404, "Not Found");
+            sendResponse(httpExchange, 404, "Not Found");
             return;
         }
 
@@ -70,27 +71,27 @@ public class DemoServer {
                 : path.endsWith(".css") ? "text/css" : path.endsWith(".svg") ? "image/svg+xml" : "text/plain";
 
         byte[] content = Files.readAllBytes(file.toPath());
-        ex.getResponseHeaders().set("Content-Type", contentType);
-        ex.sendResponseHeaders(200, content.length);
-        ex.getResponseBody().write(content);
-        ex.close();
+        httpExchange.getResponseHeaders().set("Content-Type", contentType);
+        httpExchange.sendResponseHeaders(200, content.length);
+        httpExchange.getResponseBody().write(content);
+        httpExchange.close();
     }
 
-    private static void handleJwks(HttpExchange ex) throws Exception {
+    private static void handleJwks(HttpExchange httpExchange) throws Exception {
         Map<String, Object> jwks = Map.of("keys",
                 java.util.List.of(config.publicSigningKey.toJSONObject(),
                         config.publicEncryptionKey.toJSONObject()));
-        sendJson(ex, 200, jwks);
+        sendJson(httpExchange, 200, jwks);
     }
 
-    private static void handleLogin(HttpExchange ex) throws Exception {
+    private static void handleLogin(HttpExchange httpExchange) throws Exception {
         oidcClient.refreshIfNeeded();
 
-        String sessionId = getOrCreateSession(ex);
+        String sessionId = getOrCreateSession(httpExchange);
         SessionManager.SessionData session = sessions.retrieve(sessionId);
 
         if (session == null) {
-            clearSessionAndRedirect(ex);
+            clearSessionAndRedirect(httpExchange);
             return;
         }
 
@@ -104,23 +105,23 @@ public class DemoServer {
         URI redirectUri = oidcClient.buildAuthUrl(auth.codeVerifier, auth.nonceValue, auth.stateValue,
                 auth.dpopKeyPair);
 
-        ex.getResponseHeaders().set("Location", redirectUri.toString());
-        ex.sendResponseHeaders(302, -1);
-        ex.close();
+        httpExchange.getResponseHeaders().set("Location", redirectUri.toString());
+        httpExchange.sendResponseHeaders(302, -1);
+        httpExchange.close();
     }
 
-    private static void handleCallback(HttpExchange ex) throws Exception {
+    private static void handleCallback(HttpExchange httpExchange) throws Exception {
         try {
-            String sessionId = extractSessionId(ex);
+            String sessionId = extractSessionId(httpExchange);
             SessionManager.SessionData session = sessions.retrieve(sessionId);
 
             if (session == null || session.auth == null) {
-                sendResponse(ex, 401, "No session");
+                sendResponse(httpExchange, 401, "No session");
                 return;
             }
 
             AuthorizationCode code = oidcClient.getAuthCodeFromCallback(
-                    ex.getRequestURI(),
+                    httpExchange.getRequestURI(),
                     session.auth.stateValue);
             Map<String, Object> userData = oidcClient.exchangeCode(
                     code,
@@ -133,61 +134,61 @@ public class DemoServer {
             session.userData = userData;
             session.auth = null;
 
-            ex.getResponseHeaders().set("Location", "/");
-            ex.sendResponseHeaders(302, -1);
-            ex.close();
+            httpExchange.getResponseHeaders().set("Location", "/");
+            httpExchange.sendResponseHeaders(302, -1);
+            httpExchange.close();
         } catch (Exception e) {
             e.printStackTrace();
-            sendResponse(ex, 401, "Authentication failed");
+            sendResponse(httpExchange, 401, "Authentication failed");
         }
     }
 
-    private static void handleUser(HttpExchange ex) throws Exception {
-        String sessionId = extractSessionId(ex);
+    private static void handleUser(HttpExchange httpExchange) throws Exception {
+        String sessionId = extractSessionId(httpExchange);
 
         if (sessionId != null) {
             SessionManager.SessionData session = sessions.retrieve(sessionId);
 
             if (session == null) {
-                clearSessionAndRedirect(ex);
+                clearSessionAndRedirect(httpExchange);
                 return;
             }
 
             if (session.userData != null) {
-                sendJson(ex, 200, session.userData);
+                sendJson(httpExchange, 200, session.userData);
                 return;
             }
         }
 
-        ex.sendResponseHeaders(401, -1);
-        ex.close();
+        httpExchange.sendResponseHeaders(401, -1);
+        httpExchange.close();
     }
 
-    private static void handleLogout(HttpExchange ex) throws Exception {
-        String sessionId = extractSessionId(ex);
+    private static void handleLogout(HttpExchange httpExchange) throws Exception {
+        String sessionId = extractSessionId(httpExchange);
         sessions.clear(sessionId);
 
-        clearSessionAndRedirect(ex);
+        clearSessionAndRedirect(httpExchange);
     }
 
-    private static String getOrCreateSession(HttpExchange ex) {
-        String sessionId = extractSessionId(ex);
+    private static String getOrCreateSession(HttpExchange httpExchange) {
+        String sessionId = extractSessionId(httpExchange);
         if (sessionId == null || sessions.retrieve(sessionId) == null) {
             sessionId = sessions.newSession();
-            ex.getResponseHeaders().set("Set-Cookie", "sessionId=" + sessionId + "; Path=/");
+            httpExchange.getResponseHeaders().set("Set-Cookie", "sessionId=" + sessionId + "; Path=/");
         }
         return sessionId;
     }
 
-    private static void clearSessionAndRedirect(HttpExchange ex) throws Exception {
-        ex.getResponseHeaders().set("Set-Cookie", "sessionId=; Max-Age=0; Path=/");
-        ex.getResponseHeaders().set("Location", "/");
-        ex.sendResponseHeaders(302, -1);
-        ex.close();
+    private static void clearSessionAndRedirect(HttpExchange httpExchange) throws Exception {
+        httpExchange.getResponseHeaders().set("Set-Cookie", "sessionId=; Max-Age=0; Path=/");
+        httpExchange.getResponseHeaders().set("Location", "/");
+        httpExchange.sendResponseHeaders(302, -1);
+        httpExchange.close();
     }
 
-    private static String extractSessionId(HttpExchange ex) {
-        String cookie = ex.getRequestHeaders().getFirst("Cookie");
+    private static String extractSessionId(HttpExchange httpExchange) {
+        String cookie = httpExchange.getRequestHeaders().getFirst("Cookie");
         if (cookie != null) {
             for (String part : cookie.split(";")) {
                 String[] kv = part.trim().split("=", 2);
@@ -199,18 +200,18 @@ public class DemoServer {
         return null;
     }
 
-    private static void sendJson(HttpExchange ex, int status, Object data) throws Exception {
+    private static void sendJson(HttpExchange httpExchange, int status, Object data) throws Exception {
         byte[] response = JSON.writeValueAsBytes(data);
-        ex.getResponseHeaders().set("Content-Type", "application/json");
-        ex.sendResponseHeaders(status, response.length);
-        ex.getResponseBody().write(response);
-        ex.close();
+        httpExchange.getResponseHeaders().set("Content-Type", "application/json");
+        httpExchange.sendResponseHeaders(status, response.length);
+        httpExchange.getResponseBody().write(response);
+        httpExchange.close();
     }
 
-    private static void sendResponse(HttpExchange ex, int status, String message) throws Exception {
+    private static void sendResponse(HttpExchange httpExchange, int status, String message) throws Exception {
         byte[] response = message.getBytes();
-        ex.sendResponseHeaders(status, response.length);
-        ex.getResponseBody().write(response);
-        ex.close();
+        httpExchange.sendResponseHeaders(status, response.length);
+        httpExchange.getResponseBody().write(response);
+        httpExchange.close();
     }
 }
