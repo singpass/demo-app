@@ -47,7 +47,7 @@ public class DemoServer {
         } catch (Exception e) {
             e.printStackTrace();
             try {
-                sendResponse(httpExchange, 500, "Internal Server Error: " + e.getMessage());
+                sendResponse(httpExchange, 500, ("Internal Server Error: " + e.getMessage()).getBytes());
             } catch (Exception ignored) {
             }
         }
@@ -65,7 +65,7 @@ public class DemoServer {
 
         File file = new File(FRONTEND_DIRECTORY + path);
         if (!file.exists() || file.isDirectory()) {
-            sendResponse(httpExchange, 404, "Not Found");
+            sendResponse(httpExchange, 404, "Not Found".getBytes());
             return;
         }
 
@@ -75,16 +75,14 @@ public class DemoServer {
 
         byte[] content = Files.readAllBytes(file.toPath());
         httpExchange.getResponseHeaders().set("Content-Type", contentType);
-        httpExchange.sendResponseHeaders(200, content.length);
-        httpExchange.getResponseBody().write(content);
-        httpExchange.close();
+        sendResponse(httpExchange, 200, content);
     }
 
     private static void handleJwks(HttpExchange httpExchange) throws Exception {
         Map<String, Object> jwks = Map.of("keys",
                 java.util.List.of(config.publicSigningKey.toJSONObject(),
                         config.publicEncryptionKey.toJSONObject()));
-        sendJson(httpExchange, 200, jwks);
+        sendJson(httpExchange, jwks);
     }
 
     private static void handleLogin(HttpExchange httpExchange) throws Exception {
@@ -105,12 +103,8 @@ public class DemoServer {
         auth.dpopKeyPair = oidcClient.generateDPoPKey();
         session.auth = auth;
 
-        URI redirectUri = oidcClient.buildAuthUrl(auth.codeVerifier, auth.nonceValue, auth.stateValue,
-                auth.dpopKeyPair);
-
-        httpExchange.getResponseHeaders().set("Location", redirectUri.toString());
-        httpExchange.sendResponseHeaders(302, -1);
-        httpExchange.close();
+        redirect(httpExchange, oidcClient.buildAuthUrl(auth.codeVerifier, auth.nonceValue, auth.stateValue,
+                auth.dpopKeyPair).toString());
     }
 
     private static void handleCallback(HttpExchange httpExchange) throws Exception {
@@ -119,14 +113,14 @@ public class DemoServer {
             SessionManager.SessionData session = sessions.retrieve(sessionId);
 
             if (session == null || session.auth == null) {
-                sendResponse(httpExchange, 401, "No session");
+                sendResponse(httpExchange, 401, "No session".getBytes());
                 return;
             }
 
             AuthorizationCode code = oidcClient.getAuthCodeFromCallback(
                     httpExchange.getRequestURI(),
                     session.auth.stateValue);
-            Map<String, Object> userData = oidcClient.exchangeCode(
+            session.userData = oidcClient.exchangeCode(
                     code,
                     session.auth.codeVerifier,
                     session.auth.nonceValue,
@@ -134,15 +128,12 @@ public class DemoServer {
                     config.redirectUri,
                     session.auth.dpopKeyPair);
 
-            session.userData = userData;
             session.auth = null;
 
-            httpExchange.getResponseHeaders().set("Location", "/");
-            httpExchange.sendResponseHeaders(302, -1);
-            httpExchange.close();
+            redirect(httpExchange, "/");
         } catch (Exception e) {
             e.printStackTrace();
-            sendResponse(httpExchange, 401, "Authentication failed");
+            sendResponse(httpExchange, 401, "Authentication failed".getBytes());
         }
     }
 
@@ -158,7 +149,7 @@ public class DemoServer {
             }
 
             if (session.userData != null) {
-                sendJson(httpExchange, 200, session.userData);
+                sendJson(httpExchange, session.userData);
                 return;
             }
         }
@@ -185,7 +176,11 @@ public class DemoServer {
 
     private static void clearSessionAndRedirect(HttpExchange httpExchange) throws Exception {
         httpExchange.getResponseHeaders().set("Set-Cookie", SESSION_COOKIE_NAME + "=; Max-Age=0; Path=/");
-        httpExchange.getResponseHeaders().set("Location", "/");
+        redirect(httpExchange, "/");
+    }
+
+    private static void redirect(HttpExchange httpExchange, String location) throws Exception {
+        httpExchange.getResponseHeaders().set("Location", location);
         httpExchange.sendResponseHeaders(302, -1);
         httpExchange.close();
     }
@@ -203,18 +198,15 @@ public class DemoServer {
         return null;
     }
 
-    private static void sendJson(HttpExchange httpExchange, int status, Object data) throws Exception {
+    private static void sendJson(HttpExchange httpExchange, Object data) throws Exception {
         byte[] response = JSON.writeValueAsBytes(data);
         httpExchange.getResponseHeaders().set("Content-Type", CONTENT_TYPE_JSON);
-        httpExchange.sendResponseHeaders(status, response.length);
-        httpExchange.getResponseBody().write(response);
-        httpExchange.close();
+        sendResponse(httpExchange, 200, response);
     }
 
-    private static void sendResponse(HttpExchange httpExchange, int status, String message) throws Exception {
-        byte[] response = message.getBytes();
-        httpExchange.sendResponseHeaders(status, response.length);
-        httpExchange.getResponseBody().write(response);
+    private static void sendResponse(HttpExchange httpExchange, int status, byte[] responseData) throws Exception {
+        httpExchange.sendResponseHeaders(status, responseData.length);
+        httpExchange.getResponseBody().write(responseData);
         httpExchange.close();
     }
 }
