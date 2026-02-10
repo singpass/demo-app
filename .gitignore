@@ -1,2 +1,5 @@
 .idea
 **/node_modules
+examples/java/.gradle/
+examples/java/build/
+examples/java/bin
