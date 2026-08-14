@@ -7,14 +7,6 @@ import Router from '@koa/router';
 // Keys imported using crypto.subtle.importKey do not retain the 'kid' nor 'alg' properties, but both are needed
 // for this OIDC client library (e.g. to pick the correct decryption key to use), so we provide them here
 
-const publicSigningKey = {
-  kid: config.KEYS.PUBLIC_SIG_KEY.kid,
-  alg: config.KEYS.PUBLIC_SIG_KEY.alg,
-  key: await crypto.subtle.importKey('jwk', config.KEYS.PUBLIC_SIG_KEY, { name: 'ECDSA', namedCurve: 'P-256' }, true, [
-    'verify',
-  ]),
-};
-
 const privateSigningKey = {
   kid: config.KEYS.PRIVATE_SIG_KEY.kid,
   alg: config.KEYS.PRIVATE_SIG_KEY.alg,
@@ -36,13 +28,29 @@ const privateEncryptionKey = {
   ]),
 };
 
-function getDpopOptions() {
+// DPoP binds the access token to a key pair. It should be ephemeral (one per login), so that a
+// leaked access token is useless without the matching private key. We generate the key pair at
+// /login and persist it in the session as JWK (CryptoKey is not JSON-serializable), then rehydrate
+// it at /callback so the same key is used across the PAR, token, and userinfo requests.
+type SerializedDpopKeyPair = { privateKey: JsonWebKey; publicKey: JsonWebKey };
+
+const DPOP_KEY_PARAMS = { name: 'ECDSA', namedCurve: 'P-256' } as const;
+
+async function generateDpopKeyPair(): Promise<SerializedDpopKeyPair> {
+  const keyPair = await openidClient.randomDPoPKeyPair('ES256', { extractable: true });
+  return {
+    privateKey: await crypto.subtle.exportKey('jwk', keyPair.privateKey),
+    publicKey: await crypto.subtle.exportKey('jwk', keyPair.publicKey),
+  };
+}
+
+async function getDpopOptions({ privateKey, publicKey }: SerializedDpopKeyPair) {
   return {
     DPoP: openidClient.getDPoPHandle(
       singpassConfig,
       {
-        privateKey: privateSigningKey.key,
-        publicKey: publicSigningKey.key,
+        privateKey: await crypto.subtle.importKey('jwk', privateKey, DPOP_KEY_PARAMS, false, ['sign']),
+        publicKey: await crypto.subtle.importKey('jwk', publicKey, DPOP_KEY_PARAMS, true, ['verify']),
       },
       {
         [openidClient.modifyAssertion]: (_header, payload) => {
@@ -102,7 +110,8 @@ router.get('/login', async function handleLogin(ctx) {
   const code_challenge = await openidClient.calculatePKCECodeChallenge(code_verifier);
   const nonce = openidClient.randomNonce();
   const state = openidClient.randomState();
-  ctx.session.auth = { code_verifier, nonce, state };
+  const dpopKeyPair = await generateDpopKeyPair();
+  ctx.session.auth = { code_verifier, nonce, state, dpopKeyPair };
 
   // Authorization request
   const redirectTo = await openidClient.buildAuthorizationUrlWithPAR(
@@ -115,7 +124,7 @@ router.get('/login', async function handleLogin(ctx) {
       state,
       scope: config.SCOPES,
     },
-    getDpopOptions()
+    await getDpopOptions(dpopKeyPair)
   );
   ctx.redirect(redirectTo.href);
 });
@@ -123,7 +132,7 @@ router.get('/login', async function handleLogin(ctx) {
 router.get('/callback', async function handleSingpassCallback(ctx) {
   try {
     const currentUrl = new URL(ctx.request.href);
-    const { code_verifier, nonce, state } = ctx.session.auth;
+    const { code_verifier, nonce, state, dpopKeyPair } = ctx.session.auth;
 
     // Token request
     const tokens = await openidClient.authorizationCodeGrant(
@@ -136,7 +145,7 @@ router.get('/callback', async function handleSingpassCallback(ctx) {
         idTokenExpected: true,
       },
       undefined,
-      getDpopOptions()
+      await getDpopOptions(dpopKeyPair)
     );
     const idTokenClaims = tokens.claims();
     console.log('These are the claims in the ID token:');
@@ -151,7 +160,7 @@ router.get('/callback', async function handleSingpassCallback(ctx) {
       singpassConfig,
       tokens.access_token,
       idTokenClaims.sub,
-      getDpopOptions()
+      await getDpopOptions(dpopKeyPair)
     );
     console.log('This is the user info returned:');
     console.log(userInfo);
