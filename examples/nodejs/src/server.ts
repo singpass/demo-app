@@ -30,7 +30,7 @@ app.use(logger());
 app.use(serve('../frontend'));
 
 // Manage sessions using an in-memory session store and signed, SameSite=Lax, HttpOnly cookies
-app.keys = [crypto.randomBytes(8).toString('hex')];
+app.keys = [crypto.randomBytes(32).toString('hex')];
 app.use(session({ store: createInMemorySessionStore(), sameSite: 'lax', httpOnly: true }, app));
 
 // Serve the backend routes

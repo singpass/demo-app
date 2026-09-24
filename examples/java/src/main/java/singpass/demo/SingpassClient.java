@@ -30,6 +30,7 @@ import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
+import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 import com.nimbusds.oauth2.sdk.AuthorizationCode;
 import com.nimbusds.oauth2.sdk.AuthorizationCodeGrant;
@@ -51,6 +52,7 @@ import com.nimbusds.oauth2.sdk.id.Audience;
 import com.nimbusds.oauth2.sdk.id.Issuer;
 import com.nimbusds.oauth2.sdk.id.JWTID;
 import com.nimbusds.oauth2.sdk.id.State;
+import com.nimbusds.oauth2.sdk.id.Subject;
 import com.nimbusds.oauth2.sdk.pkce.CodeChallengeMethod;
 import com.nimbusds.oauth2.sdk.pkce.CodeVerifier;
 import com.nimbusds.oauth2.sdk.token.AccessToken;
@@ -288,7 +290,7 @@ public class SingpassClient {
         return parsedUserInfo.toSuccessResponse().getUserInfoJWT();
     }
 
-    private Map<String, Object> decryptAndParseUserInfo(JWT userInfoJWT) throws Exception {
+    private Map<String, Object> decryptAndParseUserInfo(JWT userInfoJWT, Subject expectedSubject) throws Exception {
         JWEObject jweObject = JWEObject.parse(userInfoJWT.getParsedString());
 
         JWEDecryptionKeySelector<SecurityContext> jweKeySelector = new JWEDecryptionKeySelector<>(
@@ -299,6 +301,13 @@ public class SingpassClient {
         ConfigurableJWTProcessor<SecurityContext> userInfoJwtProcessor = new DefaultJWTProcessor<>();
         userInfoJwtProcessor.setJWSKeySelector(jwsVerificationKeySelector);
         userInfoJwtProcessor.setJWEKeySelector(jweKeySelector);
+        userInfoJwtProcessor.setJWTClaimsSetVerifier(new DefaultJWTClaimsVerifier<SecurityContext>(
+                cfg.clientId.getValue(),
+                new JWTClaimsSet.Builder()
+                        .issuer(providerMeta.getIssuer().getValue())
+                        .subject(expectedSubject.getValue())
+                        .build(),
+                null));
 
         JWTClaimsSet userInfoClaimsSet = userInfoJwtProcessor.process(userInfoJWT, null);
         return userInfoClaimsSet.getClaims();
@@ -324,7 +333,7 @@ public class SingpassClient {
         // note: userinfo request is only relevant if your app is a Myinfo app
         DPoPAccessToken accessToken = tokenResp.getTokens().getDPoPAccessToken();
         JWT userInfoJWT = makeUserInfoRequest(dpopKey, accessToken);
-        Map<String, Object> userInfoClaims = decryptAndParseUserInfo(userInfoJWT);
+        Map<String, Object> userInfoClaims = decryptAndParseUserInfo(userInfoJWT, idTokenClaims.getSubject());
 
         System.out.println("This is the user info returned:");
         System.out.println(userInfoClaims);
