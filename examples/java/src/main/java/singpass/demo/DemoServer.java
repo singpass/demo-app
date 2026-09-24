@@ -7,9 +7,9 @@ import com.nimbusds.oauth2.sdk.pkce.CodeVerifier;
 import com.nimbusds.openid.connect.sdk.Nonce;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
-import java.io.File;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 import static singpass.demo.Constants.*;
@@ -62,8 +62,9 @@ public class DemoServer {
         if (path.equals("/"))
             path = "/index.html";
 
-        File file = new File(FRONTEND_DIRECTORY + path);
-        if (!file.exists() || file.isDirectory()) {
+        Path root = Path.of(FRONTEND_DIRECTORY).toRealPath();
+        Path file = root.resolve(path.substring(1)).normalize();
+        if (!file.startsWith(root) || !Files.isRegularFile(file)) {
             sendResponse(httpExchange, 404, "Not Found".getBytes());
             return;
         }
@@ -72,7 +73,7 @@ public class DemoServer {
                 : path.endsWith(".css") ? CONTENT_TYPE_CSS
                         : path.endsWith(".svg") ? CONTENT_TYPE_SVG : CONTENT_TYPE_PLAIN_TEXT;
 
-        byte[] content = Files.readAllBytes(file.toPath());
+        byte[] content = Files.readAllBytes(file);
         httpExchange.getResponseHeaders().set("Content-Type", contentType);
         sendResponse(httpExchange, 200, content);
     }
